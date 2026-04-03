@@ -1,6 +1,6 @@
 // src/background.ts
 
-const DEBUG_MODE = import.meta.env.DEV; // Tự động false khi build production
+const DEBUG_MODE = true;//import.meta.env.DEV; // Tự động false khi build production
 const log = (...args: any[]) => { if (DEBUG_MODE) console.log('[Background]', ...args); };
 const warn = (...args: any[]) => { if (DEBUG_MODE) console.warn('[Background]', ...args); };
 const err = (...args: any[]) => { if (DEBUG_MODE) console.error('[Background]', ...args); };

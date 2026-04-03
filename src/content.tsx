@@ -1,7 +1,7 @@
 import { createRoot } from 'react-dom/client';
 import { Overlay } from './Overlay';
 
-const DEBUG_MODE = import.meta.env.DEV; // Tự động false khi build production
+const DEBUG_MODE = true;//import.meta.env.DEV; // Tự động false khi build production
 const log = (...args: any[]) => { if (DEBUG_MODE) console.log('[Content]', ...args); };
 
 let allSubtitles: any[] = [];
@@ -20,6 +20,11 @@ overlayContainer.style.position = 'absolute';
 overlayContainer.style.inset = '0';
 overlayContainer.style.zIndex = '9999';
 overlayContainer.style.display = 'none';
+
+// Ngăn chặn các sự kiện chuột (click) sủi bọt (bubble up) lên player của YouTube
+['click', 'mousedown', 'mouseup', 'dblclick'].forEach(eventType => {
+  overlayContainer.addEventListener(eventType, (e) => e.stopPropagation());
+});
 
 const processSubtitles = (rawText: string) => {
   log("🛠 Parsing received rawText...");
