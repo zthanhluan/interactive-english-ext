@@ -1,73 +1,56 @@
-# React + TypeScript + Vite
+# Interactive English Extension 🧠📺
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Level up your English on YouTube! This Chrome Extension automatically pauses YouTube videos and gives you fill-in-the-blank quizzes based on the closed captions (CC).
 
-Currently, two official plugins are available:
+## ✨ Features
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+- **Automatic Subtitle Processing:** Silently intercepts YouTube's subtitle API to generate learning material on the fly.
+- **Smart Pausing:** Analyzes subtitle density and pauses the video at appropriate times to ask questions.
+- **Fill-in-the-Blank Quizzes:** Challenges you to type the missing word from the currently spoken sentence.
+- **Gamification & Streaks:** Keeps track of your correct answer streak and rewards you with celebratory milestones (10, 50, 100 in a row).
+- **In-Player Controls:** Toggle the extension ON/OFF directly from the YouTube player control bar.
+- **Debug Mode:** Easy to toggle console logs for development.
 
-## React Compiler
+## 🛠️ Tech Stack
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+- React
+- TypeScript
+- Vite
+- CRXJS Vite Plugin
 
-## Expanding the ESLint configuration
+## 🚀 Installation & Development
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+1. **Clone the repository:**
+   ```bash
+   git clone <repository-url>
+   cd interactive-english-ext
+   ```
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+2. **Install dependencies:**
+   ```bash
+   npm install
+   ```
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+3. **Run in development mode:**
+   ```bash
+   npm run dev
+   ```
+   *This will generate a `dist` folder that updates automatically as you save files.*
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+4. **Load into Chrome:**
+   - Open Chrome and navigate to `chrome://extensions/`
+   - Enable **Developer mode** (top right corner).
+   - Click **Load unpacked** and select the `dist` folder generated in step 3.
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+5. **Build for production:**
+   ```bash
+   npm run build
+   ```
+   *This will compile and minify the files into the `dist` folder, ready to be zipped and uploaded to the Chrome Web Store.*
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+## 💡 How to Use
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+1. Open any YouTube video that has subtitles available.
+2. Turn on the **CC** button in the YouTube player.
+3. Make sure the extension is toggled **ON** (look for the 🧠 icon in the YouTube controls).
+4. Watch the video. It will pause periodically and prompt you to fill in the blank!
