@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="public/icon.svg" alt="Interactive English Logo" width="128" />
+  <img src="public/icon.png" alt="Interactive English Logo" width="128" />
 </div>
 
 # Interactive English Extension 🧠📺
@@ -15,10 +15,10 @@ Level up your English on YouTube! This Chrome Extension automatically pauses You
 - **In-Player Controls:** Toggle the extension ON/OFF directly from the YouTube player control bar.
 - **Debug Mode:** Easy to toggle console logs for development.
 
----
-> **📸 Screenshot:**
-> <img src="public/demo.png" width="600" />
----
+**📸 Screenshot:**
+<div align="center">
+  <img src="public/demo.png" width="600" />
+</div>
 
 ## 🛠️ Tech Stack
 
