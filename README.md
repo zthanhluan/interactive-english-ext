@@ -1,3 +1,7 @@
+<div align="center">
+  <img src="public/icon.svg" alt="Interactive English Logo" width="128" />
+</div>
+
 # Interactive English Extension 🧠📺
 
 Level up your English on YouTube! This Chrome Extension automatically pauses YouTube videos and gives you fill-in-the-blank quizzes based on the closed captions (CC).
@@ -10,6 +14,11 @@ Level up your English on YouTube! This Chrome Extension automatically pauses You
 - **Gamification & Streaks:** Keeps track of your correct answer streak and rewards you with celebratory milestones (10, 50, 100 in a row).
 - **In-Player Controls:** Toggle the extension ON/OFF directly from the YouTube player control bar.
 - **Debug Mode:** Easy to toggle console logs for development.
+
+---
+> **📸 Screenshot:**
+> <img src="public/demo.png" width="600" />
+---
 
 ## 🛠️ Tech Stack
 
