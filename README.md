@@ -1,7 +1,8 @@
 <div align="center">
   <img src="public/icon.png" alt="Interactive English Logo" width="128" />
-  # Interactive English Extension 🧠📺
 </div>
+
+# Interactive English Extension 🧠📺
 
 Level up your English on YouTube! This Chrome Extension automatically pauses YouTube videos and gives you fill-in-the-blank quizzes based on the closed captions (CC).
 
