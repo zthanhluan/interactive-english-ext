@@ -167,17 +167,19 @@ const init = async () => {
         onCorrectAnswer={() => {
           log("🔓 Correct answer! Continuing video.");
           overlayContainer.style.display = 'none';
+          scheduledPauseTime = -1; // Hủy lịch dừng video của Replay (nếu có)
           video.play();
         }}
         onSkip={() => {
           log("⏭️ Skipped question! Continuing video.");
           overlayContainer.style.display = 'none';
+          scheduledPauseTime = -1; // Hủy lịch dừng video của Replay (nếu có)
           video.play();
         }}
         onReplay={() => {
           log("⏪ Replaying audio...");
-          // Go back 1 extra second (but not less than 0) for better context
-          const replayTime = Math.max(0, currentQuizStartTime - 1);
+          // Go back 3 extra seconds (but not less than 0) for better context
+          const replayTime = Math.max(0, currentQuizStartTime - 3);
           video.currentTime = replayTime;
           // Set lastTime to avoid triggering the seek detection logic
           lastTime = replayTime; 
