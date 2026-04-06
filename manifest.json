@@ -13,7 +13,8 @@
     "default_popup": "index.html"
   },
   "permissions": [
-    "webRequest" 
+    "webRequest",
+    "storage"
   ],
   "host_permissions": [
     "*://*.youtube.com/*"
@@ -26,6 +27,12 @@
     {
       "matches": ["*://*.youtube.com/*"],
       "js": ["src/content.tsx"]
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": ["oxford_levels.json"],
+      "matches": ["*://*.youtube.com/*"]
     }
   ]
 }

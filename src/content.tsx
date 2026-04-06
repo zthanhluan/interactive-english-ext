@@ -6,13 +6,21 @@ const log = (...args: any[]) => { if (DEBUG_MODE) console.log('[Content]', ...ar
 
 let allSubtitles: any[] = [];
 let nextQuizAttemptTime = 30; 
-const INTERVAL = 20; 
+const COOLDOWN = 15; // Thời gian nghỉ (giây) giữa 2 câu hỏi
 let scheduledPauseTime = -1;
 let quizDataForPause: any = null;
 let lastTime = 0;
 let currentQuizStartTime = 0;
 let currentQuizEndTime = 0;
 let isExtensionActive = true;
+let lastProcessedSubtitleIndex = -1;
+
+let wordStats: Record<string, number> = {};
+let learnedWords: Set<string> = new Set();
+const LEARNED_THRESHOLD = 5; // Số lần đúng để tính là đã thuộc
+
+let targetVocabulary: Set<string> = new Set();
+let currentLevel: any = "Oxford_5000_Advanced";
 
 const overlayContainer = document.createElement('div');
 overlayContainer.id = 'interactive-english-root';
@@ -70,6 +78,7 @@ chrome.runtime.onMessage.addListener((message) => {
     scheduledPauseTime = -1;
     quizDataForPause = null;
     lastTime = currentTime;
+    lastProcessedSubtitleIndex = -1;
     overlayContainer.style.display = 'none';
   }
 });
@@ -80,6 +89,7 @@ document.addEventListener('yt-navigate-start', () => {
   allSubtitles = [];
   scheduledPauseTime = -1;
   quizDataForPause = null;
+  lastProcessedSubtitleIndex = -1;
   overlayContainer.style.display = 'none';
 });
 
@@ -117,6 +127,56 @@ document.addEventListener('yt-navigate-finish', () => {
   setTimeout(showCCNoticeIfNeeded, 2000); // Wait 2s for YouTube to update the CC button UI
 });
 
+chrome.storage.onChanged.addListener((changes, namespace) => {
+  if (namespace === 'sync') {
+    if (changes.vocabLevel) {
+      log(`🔄 Vocabulary level changed from ${changes.vocabLevel.oldValue} to ${changes.vocabLevel.newValue}`);
+      currentLevel = changes.vocabLevel.newValue;
+      targetVocabulary.clear(); // Xóa bộ nhớ cũ
+      loadVocabulary(); // Tải lại bộ nhớ với level mới
+    }
+    
+    if (changes.wordStats) {
+      log(`🔄 Progress updated or reset.`);
+      wordStats = (changes.wordStats.newValue || {}) as Record<string, number>;
+      learnedWords.clear();
+      for (const [word, count] of Object.entries(wordStats)) {
+        if (count >= LEARNED_THRESHOLD) learnedWords.add(word);
+      }
+      log(`🧠 Now tracking ${learnedWords.size} learned words.`);
+    }
+  }
+});
+
+const loadVocabulary = async () => {
+  if (targetVocabulary.size > 0) return;
+  try {
+    // Lấy cấp độ từ vựng do người dùng chọn và lịch sử học
+    const result = await chrome.storage.sync.get(['vocabLevel', 'wordStats']);
+    if (result.vocabLevel) {
+      currentLevel = result.vocabLevel;
+    }
+    if (result.wordStats) {
+      wordStats = result.wordStats as Record<string, number>;
+      // Đưa những từ đạt đủ 5 lần vào danh sách đã thuộc
+      for (const [word, count] of Object.entries(wordStats)) {
+        if (count >= LEARNED_THRESHOLD) learnedWords.add(word);
+      }
+      log(`🧠 Loaded ${learnedWords.size} learned words.`);
+    }
+
+    const url = chrome.runtime.getURL('oxford_levels.json');
+    const response = await fetch(url);
+    const data = await response.json();
+    if (data && data[currentLevel]) {
+      targetVocabulary = new Set(data[currentLevel].map((w: string) => w.toLowerCase()));
+      log(`📚 Loaded ${targetVocabulary.size} words for level ${currentLevel}`);
+    }
+  } catch (e) {
+    log("❌ Error loading vocabulary:", e);
+  }
+};
+
 const init = async () => {
   const video = document.querySelector('video');
   const player = document.querySelector('.html5-video-player');
@@ -125,6 +185,7 @@ const init = async () => {
     log("📺 Video Player is ready. Attaching Overlay...");
 
     showCCNoticeIfNeeded();
+    await loadVocabulary();
 
     // Add Toggle extension button integrated directly into YouTube's control bar
     const rightControls = document.querySelector('.ytp-right-controls');
@@ -152,7 +213,8 @@ const init = async () => {
           quizDataForPause = null;
           log("💤 Question feature paused.");
         } else {
-          nextQuizAttemptTime = video.currentTime + 10;
+          nextQuizAttemptTime = video.currentTime + COOLDOWN;
+          lastProcessedSubtitleIndex = -1;
           log("🧠 Question feature resumed.");
         }
       };
@@ -166,6 +228,20 @@ const init = async () => {
       <Overlay 
         onCorrectAnswer={() => {
           log("🔓 Correct answer! Continuing video.");
+          
+          // Lưu lại lịch sử học tập
+          if (quizDataForPause && quizDataForPause.answer) {
+            const w = quizDataForPause.answer.toLowerCase();
+            wordStats[w] = (wordStats[w] || 0) + 1;
+            log(`📈 Word "${w}" correct count: ${wordStats[w]}/${LEARNED_THRESHOLD}`);
+            
+            if (wordStats[w] >= LEARNED_THRESHOLD && !learnedWords.has(w)) {
+              learnedWords.add(w);
+              log(`🎉 Congratulations! You've mastered the word "${w}"!`);
+            }
+            chrome.storage.sync.set({ wordStats });
+          }
+
           overlayContainer.style.display = 'none';
           scheduledPauseTime = -1; // Hủy lịch dừng video của Replay (nếu có)
           video.play();
@@ -199,7 +275,8 @@ const init = async () => {
         log("🔍 Seek detected. Resetting pause schedule.");
         scheduledPauseTime = -1;
         quizDataForPause = null;
-        nextQuizAttemptTime = now + 10; // Check for a quiz point 10s from new position
+        nextQuizAttemptTime = now + COOLDOWN; // Set cooldown after seek
+        lastProcessedSubtitleIndex = -1;
       }
       lastTime = now;
 
@@ -215,28 +292,19 @@ const init = async () => {
         // Reset for the next cycle
         scheduledPauseTime = -1;
         quizDataForPause = null;
-        nextQuizAttemptTime = now + INTERVAL;
+        nextQuizAttemptTime = now + COOLDOWN;
         return;
       }
 
       // If no pause is scheduled, check if it's time to look for a new quiz point.
       if (scheduledPauseTime === -1 && now >= nextQuizAttemptTime && allSubtitles.length > 0) {
-        // Check subtitle density in the recent INTERVAL (30s)
-        const recentSubs = allSubtitles.filter(s => s.start >= now - INTERVAL && s.start <= now);
-        const recentText = recentSubs.map(s => s.text).join(' ');
-        const validRecentWords = recentText.split(' ').filter((w: string) => w.length > 2 && !w.includes('[') && !w.includes(']') && !w.includes('♪'));
-
-        if (validRecentWords.length < 10) {
-          log(`⏩ Recent segment was mostly music/silence (only ${validRecentWords.length} valid words in ${INTERVAL}s). Delaying quiz by 10s.`);
-          nextQuizAttemptTime = now + 10;
-          return;
-        }
-
         // Find the subtitle that is currently playing
         const currentIndex = allSubtitles.findIndex(s => now >= s.start && now <= (s.start + s.dur));
 
-        if (currentIndex !== -1) {
-          log(`🎯 Reached ${nextQuizAttemptTime}s mark. Will pause at the end of the current sentence.`);
+        // Chỉ check những câu phụ đề chưa từng được xử lý
+        if (currentIndex !== -1 && currentIndex !== lastProcessedSubtitleIndex) {
+          lastProcessedSubtitleIndex = currentIndex;
+          log(`🎯 Hunting Mode: Checking subtitle index ${currentIndex}...`);
           
           const prevSub = allSubtitles[currentIndex - 1]?.text || "";
           const currentSubText = allSubtitles[currentIndex].text;
@@ -244,13 +312,27 @@ const init = async () => {
 
           // Ignore words that are audio labels like [Music], ♪...
           const wordsInCurrent = currentSubText.split(' ').filter((w: string) => w.length > 2 && !w.includes('[') && !w.includes(']') && !w.includes('♪'));
-          const longestWord = wordsInCurrent.reduce((a: string, b: string) => a.length >= b.length ? a : b, "");
           
-          if (longestWord) {
-            const cleanAnswer = longestWord.replace(/[.,/#!$%^&*;:{}=\-_`~()]/g,"");
+          let selectedWord = "";
+          
+          // Chỉ chọn từ thuộc danh sách từ vựng của level đã chọn (Oxford_3000 / Oxford_5000_Advanced)
+          // VÀ CHƯA ĐƯỢC HỌC THUỘC (không nằm trong learnedWords)
+          if (targetVocabulary.size > 0) {
+            const targetLevelWords = wordsInCurrent.filter((w: string) => {
+              const cleanW = w.replace(/[.,/#!$%^&*;:{}=\-_`~()]/g,"").toLowerCase();
+              return targetVocabulary.has(cleanW) && !learnedWords.has(cleanW);
+            });
+            
+            if (targetLevelWords.length > 0) {
+              selectedWord = targetLevelWords[Math.floor(Math.random() * targetLevelWords.length)];
+            }
+          }
+          
+          if (selectedWord) {
+            const cleanAnswer = selectedWord.replace(/[.,/#!$%^&*;:{}=\-_`~()]/g,"");
             
             // Only replace the word in the current sentence, avoid RegExp to prevent issues with special characters
-            const maskedCurrentSubText = currentSubText.replace(longestWord, "_________");
+            const maskedCurrentSubText = currentSubText.replace(selectedWord, "_________");
             const questionWithContext = `${prevSub} ${maskedCurrentSubText} ${nextSub}`.trim();
 
             log(`❓ Question will be: "${questionWithContext}" (Answer: "${cleanAnswer}")`);
@@ -263,9 +345,10 @@ const init = async () => {
             currentQuizStartTime = allSubtitles[currentIndex].start;
             currentQuizEndTime = allSubtitles[currentIndex].start + allSubtitles[currentIndex].dur;
             scheduledPauseTime = currentQuizEndTime;
-            log(`▶️ Video will pause at ${scheduledPauseTime.toFixed(2)}s`);
+            log(`▶️ Target word found! Video will pause at ${scheduledPauseTime.toFixed(2)}s`);
           } else {
-            nextQuizAttemptTime = now + 5;
+            // Không tìm thấy từ khó -> Bỏ qua, video tiếp tục phát bình thường
+            log("⏩ No target word found. Let video play...");
           }
         }
       }

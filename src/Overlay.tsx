@@ -84,8 +84,8 @@ export const Overlay = ({ onCorrectAnswer, onSkip, onReplay }: { onCorrectAnswer
           color: 'white', fontFamily: 'Arial, sans-serif'
         }}
       >
-        <h1 style={{ fontSize: 'clamp(28px, 6vw, 48px)', margin: '0 0 20px 0', color: '#FFD700', textShadow: '0 0 10px rgba(255, 215, 0, 0.5)', textAlign: 'center' }}>🎉 CHÚC MỪNG! 🎉</h1>
-        <p style={{ fontSize: 'clamp(16px, 4vw, 24px)', marginBottom: '40px', textAlign: 'center', maxWidth: '90%' }}>Tuyệt vời! Bạn đã trả lời đúng <strong>{correctStreak} câu liên tiếp</strong>! 🧠🔥</p>
+        <h1 style={{ fontSize: 'clamp(28px, 6vw, 48px)', margin: '0 0 20px 0', color: '#FFD700', textShadow: '0 0 10px rgba(255, 215, 0, 0.5)', textAlign: 'center' }}>🎉 CONGRATULATIONS! 🎉</h1>
+        <p style={{ fontSize: 'clamp(16px, 4vw, 24px)', marginBottom: '40px', textAlign: 'center', maxWidth: '90%' }}>Awesome! You've got <strong>{correctStreak} correct in a row</strong>! 🧠🔥</p>
         
         <div style={{ display: 'flex', gap: '20px', flexDirection: 'column', alignItems: 'center' }}>
           <a 
