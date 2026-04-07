@@ -30,8 +30,11 @@ overlayContainer.style.zIndex = '9999';
 overlayContainer.style.display = 'none';
 
 // Ngăn chặn các sự kiện chuột (click) sủi bọt (bubble up) lên player của YouTube
-['click', 'mousedown', 'mouseup', 'dblclick'].forEach(eventType => {
-  overlayContainer.addEventListener(eventType, (e) => e.stopPropagation());
+['click', 'mousedown', 'mouseup', 'dblclick', 'contextmenu'].forEach(eventType => {
+  overlayContainer.addEventListener(eventType, (e) => {
+    e.stopPropagation();
+    if (eventType === 'contextmenu') e.preventDefault();
+  });
 });
 
 const processSubtitles = (rawText: string) => {
@@ -242,12 +245,14 @@ const init = async () => {
             chrome.storage.sync.set({ wordStats });
           }
 
+          quizDataForPause = null; // Clean up
           overlayContainer.style.display = 'none';
           scheduledPauseTime = -1; // Hủy lịch dừng video của Replay (nếu có)
           video.play();
         }}
         onSkip={() => {
           log("⏭️ Skipped question! Continuing video.");
+          quizDataForPause = null; // Clean up
           overlayContainer.style.display = 'none';
           scheduledPauseTime = -1; // Hủy lịch dừng video của Replay (nếu có)
           video.play();
@@ -291,7 +296,6 @@ const init = async () => {
 
         // Reset for the next cycle
         scheduledPauseTime = -1;
-        quizDataForPause = null;
         nextQuizAttemptTime = now + COOLDOWN;
         return;
       }
@@ -339,8 +343,42 @@ const init = async () => {
 
             quizDataForPause = { 
               question: questionWithContext, 
-              answer: cleanAnswer 
+              answer: cleanAnswer,
+              dictionary: null // Sẽ được tải ngầm từ API
             };
+
+            // Tải trước dữ liệu từ điển ngầm (Pre-fetch)
+            fetch(`https://api.dictionaryapi.dev/api/v2/entries/en/${cleanAnswer}`)
+              .then(res => res.json())
+              .then(data => {
+                if (Array.isArray(data) && data.length > 0) {
+                  const entry = data[0];
+                  
+                  let phonetic = entry.phonetic || '';
+                  let audioUrl = '';
+                  
+                  if (entry.phonetics && entry.phonetics.length > 0) {
+                    const validPhonetic = entry.phonetics.find((p: any) => p.text) || entry.phonetics[0];
+                    phonetic = phonetic || validPhonetic.text || '';
+                    
+                    const validAudio = entry.phonetics.find((p: any) => p.audio && p.audio.length > 0);
+                    if (validAudio) {
+                      audioUrl = validAudio.audio;
+                    }
+                  }
+                  
+                  const meaning = entry.meanings?.[0]?.definitions?.[0]?.definition || '';
+                  const partOfSpeech = entry.meanings?.[0]?.partOfSpeech || '';
+                  
+                  if (quizDataForPause && quizDataForPause.answer === cleanAnswer) {
+                    quizDataForPause.dictionary = { phonetic, audioUrl, meaning, partOfSpeech };
+                    log(`📖 Dictionary data loaded for "${cleanAnswer}"`);
+                    // Dispatch event to update Overlay if it's already showing
+                    window.dispatchEvent(new CustomEvent('UPDATE_DICTIONARY', { detail: quizDataForPause.dictionary }));
+                  }
+                }
+              })
+              .catch(err => log("Dictionary fetch error", err));
 
             currentQuizStartTime = allSubtitles[currentIndex].start;
             currentQuizEndTime = allSubtitles[currentIndex].start + allSubtitles[currentIndex].dur;
